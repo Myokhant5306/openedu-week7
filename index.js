@@ -1,12 +1,26 @@
-import appSrc from './app.js';
-import fs from 'fs';
 import express from 'express';
 import bodyParser from 'body-parser';
-import m from 'mongoose';
+
+import { createReadStream } from 'fs';
 import crypto from 'crypto';
 import http from 'http';
-import UserModel from './models/User.js';
-const User = UserModel(m);
-const app = appSrc(express, bodyParser, fs, crypto, http, CORS, User, m);
-const PORT = process.env.PORT || 443;
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}!`));
+import m from 'mongoose';
+import appSrc from './app.js';
+
+const UserSchema = new m.Schema({
+    login: {
+      type: 'String'
+    },
+    password: {
+      type: 'String'
+    }
+});
+
+
+const app = appSrc(express, bodyParser, createReadStream, crypto, http, m, UserSchema);
+
+try {
+    app.listen(process.env.PORT ?? 4321);
+} catch(e) {
+    console.log(e.codeName);
+}
