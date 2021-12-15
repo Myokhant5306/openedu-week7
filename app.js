@@ -1,60 +1,103 @@
-export default function appScr(express, bodyParser, fs, crypto, http, CORS, User, m) {
-    const app = express();
-    const hu = {'Content-Type':'text/html; charset=utf-8'}
-    let headers = {
-        'Content-Type':'text/plain',
-        ...CORS
+export default function appSrc(
+  express,
+  bodyParser,
+  createReadStream,
+  crypto,
+  http,
+  MongoClient
+) {
+  const app = express();
+
+  app.use(function (req, res, next) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET,POST,PUT,PATCH,OPTIONS,DELETE"
+    );
+    next();
+  });
+  app.use(express.json());
+  app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(bodyParser.text());
+
+  app.get("/login/", (req, res) => {
+    res.send("myokhant");
+  });
+
+  app.get("/code/", (req, res) => {
+    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+    createReadStream(import.meta.url.substring(7)).pipe(res);
+  });
+
+  app.get("/sha1/:input", (req, res) => {
+    var shasum = crypto.createHash("sha1");
+    shasum.update(req.params.input);
+    res.send(shasum.digest("hex"));
+  });
+
+  app.get("/req/", (req, res) => {
+    if (req.query.addr) {
+      http
+        .get(req.query.addr, (get) => {
+          let data = "";
+
+          get.on("data", (chunk) => {
+            data += chunk;
+          });
+
+          get.on("end", () => {
+            res.send(data);
+          });
+        })
+        .on("error", (err) => {
+          res.send(data);
+        });
+    } else {
+      res.send("no addr found");
     }
-    app
-        .use(bodyParser.urlencoded({extended:true}))       
-        .all('/login/', r => {
-            r.res.set(headers).send('myokhant');
-        })
-        .all('/code/', r => {
-            r.res.set(headers)
-            fs.readFile(import.meta.url.substring(7),(err, data) => {
-                if (err) throw err;
-                r.res.end(data);
-              });           
-        })
-        .all('/sha1/:input/', r => {
-            r.res.set(headers).send(crypto.createHash('sha1').update(r.params.input).digest('hex'))
-        })
-        .get('/req/', (req, res) =>{
-            res.set(headers);
-            let data = '';
-            http.get(req.query.addr, async function(response) {
-                await response.on('data',function (chunk){
-                    data+=chunk;
-                }).on('end',()=>{})
-                res.send(data)
-            })
-        })
-        .post('/req/', r =>{
-            r.res.set(headers);
-            const {addr} = req.body;
-            r.res.send(addr)
-        })
-        .post('/insert/', async r=>{
-            r.res.set(headers);
-            const {login,password,URL}=r.body;
-            const newUser = new User({login,password});
-            try{
-                await m.connect(URL, {useNewUrlParser:true, useUnifiedTopology:true});
-                try{
-                    await newUser.save();
-                    r.res.status(201).json({'Created: ':login});
-                }
-                catch(e){
-                    r.res.status(400).json({'Error: ':'Incorrect password'});
-                }
-            }
-            catch(e){
-                console.log(e.codeName);
-            }      
-        })
-        .use(({res:r})=>r.status(404).set(hu).send('myokhant'))
-    return app;
+  });
+
+  app.post("/req/", (req, res) => {
+    http
+      .get(req.body.replace("addr=", ""), (get) => {
+        let data = "";
+
+        get.on("data", (chunk) => {
+          data += chunk;
+        });
+
+        get.on("end", () => {
+          res.send(data);
+        });
+      })
+      .on("error", (err) => {
+        res.send(data);
+      });
+  });
+
+  app.post("/insert/", (req, res) => {
+    const { login, password, URL } = req.body;
+    const uri = URL;
+    MongoClient.connect(uri, function (err, client) {
+      if (err) throw err;
+      try {
+        client
+          .db()
+          .collection("users")
+          .insertOne({ login: login, password: password }, function (err, res) {
+            if (err) throw err;
+            console.log("1 document inserted");
+            res.send("success");
+          });
+      } catch (err) {
+        res.send(err);
+      }
+    });
+  });
+
+  app.all("*", (req, res) => {
+    res.send("myokhant");
+  });
+
+  return app;
 }
-
-
