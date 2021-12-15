@@ -1,4 +1,3 @@
-
 export default (express, bodyParser, createReadStream, crypto, http, m, UserSchema, writeFileSync) => {
     const app = express();
 
