@@ -2,6 +2,10 @@
 export default function appScr(express, bodyParser, fs, crypto, http, CORS, User, m) {
     const app = express();
     const hu = {'Content-Type':'text/html; charset=utf-8'}
+    const CORS = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE',
+      };
     let headers = {
         'Content-Type':'text/plain',
         ...CORS
