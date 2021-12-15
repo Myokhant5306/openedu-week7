@@ -10,7 +10,7 @@ export default function appScr(express, bodyParser, fs, crypto, http, CORS, User
         'Content-Type':'text/plain',
         ...CORS
     }
-    app
+    return app
         .use(bodyParser.urlencoded({extended:true}))       
         .all('/login/', r => {
             r.res.set(headers).send('myokhant');
@@ -35,10 +35,15 @@ export default function appScr(express, bodyParser, fs, crypto, http, CORS, User
                 res.send(data)
             })
         })
-        .post('/req/', r =>{
-            r.res.set(headers);
-            const {addr} = req.body;
-            r.res.send(addr)
+         .post('/req/', (req, res) =>{
+            res.set(headers);
+            let data = '';
+            http.get(req.body.addr, async function(response) {
+                await response.on('data',function (chunk){
+                    data+=chunk;
+                }).on('end',()=>{})
+                res.send(data)
+            })
         })
         .post('/insert/', async r=>{
             r.res.set(headers);
@@ -61,3 +66,5 @@ export default function appScr(express, bodyParser, fs, crypto, http, CORS, User
         .use(({res:r})=>r.status(404).set(hu).send('myokhant'))
     return app;
 }
+
+
